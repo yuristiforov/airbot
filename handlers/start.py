@@ -9,7 +9,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 from air_api import waqi_client
-from db import save_user
+from db import save_user, get_user
 
 router = Router()
 
@@ -71,6 +71,9 @@ async def handle_location(message: Message, state: FSMContext) -> None:
     await message.answer(
         f"Определил: {city_name}. AQI сейчас: {aqi}. Буду присылать алерты 👍"
     )
+    from handlers.settings import settings_keyboard
+    user = await get_user(message.from_user.id)
+    await message.answer("Город сохранён! Настрой что отслеживать:", reply_markup=settings_keyboard(user))
 
 
 @router.message(OnboardingStates.waiting_for_input, F.text)
@@ -108,3 +111,6 @@ async def handle_city_text(message: Message, state: FSMContext) -> None:
     await message.answer(
         f"Определил: {city_name}. AQI сейчас: {aqi}. Буду присылать алерты 👍"
     )
+    from handlers.settings import settings_keyboard
+    user = await get_user(message.from_user.id)
+    await message.answer("Город сохранён! Настрой что отслеживать:", reply_markup=settings_keyboard(user))
