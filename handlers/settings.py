@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
-from db import get_user, set_user_active, set_user_alert
+from db import get_user, set_user_active, set_user_alert, set_user_track
 from air_api import waqi_client
 
 router = Router()
@@ -36,15 +36,22 @@ async def cmd_settings(message: Message) -> None:
     active_str = "включены" if user["active"] else "выключены"
     alert_100_str = "вкл" if user["alert_100"] else "выкл"
     alert_150_str = "вкл" if user["alert_150"] else "выкл"
+    track_air_str = "вкл" if user.get("track_air", True) else "выкл"
+    track_uv_str = "вкл" if user.get("track_uv", True) else "выкл"
+    track_weather_str = "вкл" if user.get("track_weather", True) else "выкл"
 
     await message.answer(
         f"Настройки:\n"
         f"Город: {user['city_name']}\n"
-        f"Алерты: {active_str}\n"
-        f"Предупреждение (AQI >= 100): {alert_100_str}\n"
-        f"Опасность (AQI >= 150): {alert_150_str}\n\n"
+        f"Алерты: {active_str}\n\n"
+        f"Отслеживание:\n"
+        f"  Воздух (AQI): {track_air_str}\n"
+        f"    Предупреждение (>= 100): {alert_100_str}\n"
+        f"    Опасность (>= 150): {alert_150_str}\n"
+        f"  UV-индекс: {track_uv_str}\n"
+        f"  Экстремальная погода: {track_weather_str}\n\n"
         f"Команды:\n"
-        f"/stop — приостановить алерты\n"
+        f"/stop — приостановить все алерты\n"
         f"/resume — возобновить алерты\n"
         f"/start — сменить город"
     )
