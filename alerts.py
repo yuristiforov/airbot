@@ -50,17 +50,25 @@ async def check_and_notify(bot: Bot, user: dict, current_aqi: int) -> None:
 
 # ── UV index ──────────────────────────────────────────────────────────────────
 
-MSG_UV_HIGH      = "☀️ Высокий UV-индекс ({uv:.0f}). Надень солнцезащитный крем."
-MSG_UV_EXTREME   = "🔆 Экстремальный UV-индекс ({uv:.0f})! Не выходи без защиты кожи и глаз."
-MSG_UV_CLEAR     = "☁️ UV-индекс нормализовался ({uv:.0f}). Можно выходить без крема."
+MSG_UV_LOW    = "☀️ UV низкий ({uv:.0f}). Защита не требуется."
+MSG_UV_MEDIUM = "🕶 UV умеренный ({uv:.0f}). Используйте крем с SPF и солнцезащитные очки."
+MSG_UV_HIGH   = "🔆 UV высокий ({uv:.0f}). Лучше не выходите из дома. Если необходимо — держитесь в тени, закрывайте все открытые участки кожи."
 
-UV_HIGH    = 6.0
-UV_EXTREME = 11.0
+UV_MEDIUM = 3.0
+UV_HIGH   = 8.0
 
 
 def _is_daytime_utc() -> bool:
     """Rough check: UTC hour between 6 and 20 (covers most latitudes at peak UV)."""
     return 6 <= datetime.now(timezone.utc).hour <= 20
+
+
+def _uv_zone(uv: float) -> str:
+    if uv >= UV_HIGH:
+        return "high"
+    if uv >= UV_MEDIUM:
+        return "medium"
+    return "low"
 
 
 async def check_and_notify_uv(bot: Bot, user: dict, current_uv: float) -> None:
@@ -71,21 +79,18 @@ async def check_and_notify_uv(bot: Bot, user: dict, current_uv: float) -> None:
     state = await get_alert_state(user_id)
     prev_status = state.get("uv_status") if state else None
 
-    new_status: str
+    new_status = _uv_zone(current_uv)
     message: str | None = None
 
-    if current_uv >= UV_EXTREME:
-        new_status = "extreme"
-        if prev_status != "extreme":
-            message = MSG_UV_EXTREME.format(uv=current_uv)
-    elif current_uv >= UV_HIGH:
-        new_status = "high"
-        if prev_status not in ("high", "extreme"):
+    if new_status != prev_status:
+        if new_status == "high":
             message = MSG_UV_HIGH.format(uv=current_uv)
-    else:
-        new_status = "safe"
-        if prev_status in ("high", "extreme") and _is_daytime_utc():
-            message = MSG_UV_CLEAR.format(uv=current_uv)
+        elif new_status == "medium":
+            # LOW→MEDIUM or HIGH→MEDIUM both get the medium alert
+            message = MSG_UV_MEDIUM.format(uv=current_uv)
+        else:  # new_status == "low"
+            if _is_daytime_utc():
+                message = MSG_UV_LOW.format(uv=current_uv)
 
     if message:
         try:
