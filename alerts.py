@@ -54,8 +54,8 @@ MSG_UV_LOW    = "☀️ UV низкий ({uv:.0f}). Защита не требу
 MSG_UV_MEDIUM = "🕶 UV умеренный ({uv:.0f}). Используйте крем с SPF и солнцезащитные очки."
 MSG_UV_HIGH   = "🔆 UV высокий ({uv:.0f}). Лучше не выходите из дома. Если необходимо — держитесь в тени, закрывайте все открытые участки кожи."
 
-UV_MEDIUM = 3.0
-UV_HIGH   = 8.0
+UV_MEDIUM = 3   # LOW: 0-2, MEDIUM starts at 3
+UV_HIGH   = 8   # MEDIUM: 3-7, HIGH starts at 8
 
 
 def _is_daytime_utc() -> bool:
