@@ -50,9 +50,9 @@ async def check_and_notify(bot: Bot, user: dict, current_aqi: int) -> None:
 
 # ── UV index ──────────────────────────────────────────────────────────────────
 
-MSG_UV_LOW    = "☀️ UV низкий ({uv:.0f}). Защита не требуется."
-MSG_UV_MEDIUM = "🕶 UV умеренный ({uv:.0f}). Используйте крем с SPF и солнцезащитные очки."
-MSG_UV_HIGH   = "🔆 UV высокий ({uv:.0f}). Лучше не выходите из дома. Если необходимо — держитесь в тени, закрывайте все открытые участки кожи."
+MSG_UV_LOW    = "☀️ UV низкий ({uv}). Защита не требуется."
+MSG_UV_MEDIUM = "🕶 UV умеренный ({uv}). Используйте крем с SPF и солнцезащитные очки."
+MSG_UV_HIGH   = "🔆 UV высокий ({uv}). Лучше не выходите из дома. Если необходимо — держитесь в тени, закрывайте все открытые участки кожи."
 
 UV_MEDIUM = 3   # LOW: 0-2, MEDIUM starts at 3
 UV_HIGH   = 8   # MEDIUM: 3-7, HIGH starts at 8
@@ -79,6 +79,7 @@ async def check_and_notify_uv(bot: Bot, user: dict, current_uv: float) -> None:
     state = await get_alert_state(user_id)
     prev_status = state.get("uv_status") if state else None
 
+    current_uv = round(current_uv)
     new_status = _uv_zone(current_uv)
     message: str | None = None
 
