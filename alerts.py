@@ -12,6 +12,14 @@ MSG_AIR_DANGER  = "🚨 Опасно! AQI {aqi}. Сиди дома, закрой
 MSG_AIR_CLEAR   = "✅ Воздух улучшился (AQI {aqi}). Опасность отменена."
 
 
+def _aqi_zone(aqi: int) -> str:
+    if aqi >= 150:
+        return "danger"
+    if aqi >= 100:
+        return "warning"
+    return "good"
+
+
 async def check_and_notify(bot: Bot, user: dict, current_aqi: int) -> None:
     if not user.get("track_air", True):
         return
@@ -20,22 +28,15 @@ async def check_and_notify(bot: Bot, user: dict, current_aqi: int) -> None:
     state = await get_alert_state(user_id)
     prev_status = state["last_status"] if state else None
 
-    new_status: str
+    new_status = _aqi_zone(current_aqi)
     message: str | None = None
 
-    if current_aqi >= 150:
-        new_status = "danger"
-        if prev_status != "danger":
-            if user.get("alert_150", True):
-                message = MSG_AIR_DANGER.format(aqi=current_aqi)
-    elif current_aqi >= 100:
-        new_status = "warning"
-        if prev_status not in ("warning", "danger"):
-            if user.get("alert_100", True):
-                message = MSG_AIR_WARNING.format(aqi=current_aqi)
-    else:
-        new_status = "clear"
-        if prev_status in ("warning", "danger"):
+    if new_status != prev_status:
+        if new_status == "danger":
+            message = MSG_AIR_DANGER.format(aqi=current_aqi)
+        elif new_status == "warning":
+            message = MSG_AIR_WARNING.format(aqi=current_aqi)
+        else:  # new_status == "good"
             message = MSG_AIR_CLEAR.format(aqi=current_aqi)
 
     if message:
