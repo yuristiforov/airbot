@@ -50,7 +50,7 @@ def setup_scheduler(bot: Bot) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
         hourly_check,
-        trigger=IntervalTrigger(hours=1),
+        trigger=IntervalTrigger(minutes=30),
         kwargs={"bot": bot},
         id="hourly_check",
         replace_existing=True,
