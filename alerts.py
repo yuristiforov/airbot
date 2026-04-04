@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from aiogram import Bot
 from db import get_alert_state, update_alert_state, update_uv_alert_state, update_weather_alert_state
 
@@ -10,6 +11,23 @@ logger = logging.getLogger(__name__)
 MSG_AIR_WARNING = "⚠️ Воздух грязный (AQI {aqi}). Лишний раз не выходи из дома."
 MSG_AIR_DANGER  = "🚨 Опасно! AQI {aqi}. Сиди дома, закрой окна и вентиляцию."
 MSG_AIR_CLEAR   = "✅ Воздух улучшился (AQI {aqi}). Опасность отменена."
+
+
+def is_night_mode_active(user: dict) -> bool:
+    if not user.get("night_mode_enabled"):
+        return False
+    tz_name = user.get("timezone") or "UTC"
+    try:
+        tz = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        tz = ZoneInfo("UTC")
+    local_hour = datetime.now(tz).hour
+    night_start = user.get("night_start", 23)
+    night_end = user.get("night_end", 7)
+    if night_start > night_end:  # crosses midnight e.g. 23-7
+        return local_hour >= night_start or local_hour < night_end
+    else:  # same-day range e.g. 1-6
+        return night_start <= local_hour < night_end
 
 
 def _aqi_zone(aqi: int) -> str:
@@ -41,7 +59,7 @@ async def check_and_notify(bot: Bot, user: dict, current_aqi: int) -> None:
 
     if message:
         try:
-            await bot.send_message(user_id, message)
+            await bot.send_message(user_id, message, disable_notification=is_night_mode_active(user))
             logger.info("Sent air %s alert to user %d (AQI %d)", new_status, user_id, current_aqi)
         except Exception as exc:
             logger.warning("Failed to send air alert to user %d: %s", user_id, exc)
@@ -96,7 +114,7 @@ async def check_and_notify_uv(bot: Bot, user: dict, current_uv: float) -> None:
 
     if message:
         try:
-            await bot.send_message(user_id, message)
+            await bot.send_message(user_id, message, disable_notification=is_night_mode_active(user))
             logger.info("Sent UV %s alert to user %d (UV %.1f)", new_status, user_id, current_uv)
         except Exception as exc:
             logger.warning("Failed to send UV alert to user %d: %s", user_id, exc)
@@ -136,7 +154,7 @@ async def check_and_notify_weather(bot: Bot, user: dict, weather: dict) -> None:
 
     if message:
         try:
-            await bot.send_message(user_id, message)
+            await bot.send_message(user_id, message, disable_notification=is_night_mode_active(user))
             logger.info("Sent weather %s alert to user %d (code %d, wind %.1f)", new_status, user_id, weather_code, wind_speed)
         except Exception as exc:
             logger.warning("Failed to send weather alert to user %d: %s", user_id, exc)
