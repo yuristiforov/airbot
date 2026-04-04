@@ -51,10 +51,36 @@ async def main() -> None:
         sentinel.touch()
         logger.info("broadcast_v1: done")
 
+    async def broadcast_v2() -> None:
+        sentinel = Path(settings.DATA_DIR) / "broadcast_v2.done"
+        if sentinel.exists():
+            return
+        users = await get_all_active_users()
+        logger.info("broadcast_v2: sending night mode announcement to %d users", len(users))
+        for user in users:
+            try:
+                await bot.send_message(
+                    user["user_id"],
+                    "🌙 Новая функция: ночной режим!\n"
+                    "Включи его в настройках — и бот не будет будить тебя ночью.\n"
+                    "Уведомления будут приходить беззвучно в выбранные часы.",
+                )
+                await bot.send_message(
+                    user["user_id"],
+                    settings_text(user),
+                    reply_markup=settings_keyboard(user),
+                )
+            except Exception as exc:
+                logger.warning("broadcast_v2: failed to send to %s: %s", user["user_id"], exc)
+            await asyncio.sleep(0.05)
+        sentinel.touch()
+        logger.info("broadcast_v2: done")
+
     async def on_startup() -> None:
         scheduler.start()
         logger.info("Scheduler started")
         await broadcast_v1()
+        await broadcast_v2()
 
     async def on_shutdown() -> None:
         scheduler.shutdown(wait=False)

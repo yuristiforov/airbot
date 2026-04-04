@@ -45,9 +45,13 @@ async def init_db() -> None:
         """)
         # Migrate existing installations
         for col, defn in [
-            ("track_air",    "BOOLEAN DEFAULT TRUE"),
-            ("track_uv",     "BOOLEAN DEFAULT TRUE"),
-            ("track_weather","BOOLEAN DEFAULT TRUE"),
+            ("track_air",          "BOOLEAN DEFAULT TRUE"),
+            ("track_uv",           "BOOLEAN DEFAULT TRUE"),
+            ("track_weather",      "BOOLEAN DEFAULT TRUE"),
+            ("night_mode_enabled", "BOOLEAN DEFAULT FALSE"),
+            ("night_start",        "INTEGER DEFAULT 23"),
+            ("night_end",          "INTEGER DEFAULT 7"),
+            ("timezone",           "TEXT DEFAULT 'UTC'"),
         ]:
             await _add_column_if_missing(db, "users", col, defn)
         for col, defn in [
@@ -141,6 +145,24 @@ async def set_user_track(user_id: int, field: str, value: bool) -> None:
         await db.execute(
             f"UPDATE users SET {field} = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
             (value, user_id),
+        )
+        await db.commit()
+
+
+async def set_night_mode_enabled(user_id: int, value: bool) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET night_mode_enabled = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+            (value, user_id),
+        )
+        await db.commit()
+
+
+async def set_night_mode_time(user_id: int, night_start: int, night_end: int, tz: str) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE users SET night_start = ?, night_end = ?, timezone = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+            (night_start, night_end, tz, user_id),
         )
         await db.commit()
 
