@@ -4,11 +4,12 @@ import os
 from pathlib import Path
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand
 from config import settings
 from db import init_db, get_all_active_users
 from scheduler import setup_scheduler
 from handlers import start, settings as settings_handler, location
-from handlers.settings import settings_keyboard
+from handlers.settings import settings_keyboard, settings_text
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -63,11 +64,8 @@ async def main() -> None:
                     user["user_id"],
                     "🌙 Новая функция: ночной режим!\n"
                     "Включи его в настройках — и бот не будет будить тебя ночью.\n"
-                    "Уведомления будут приходить беззвучно в выбранные часы.",
-                )
-                await bot.send_message(
-                    user["user_id"],
-                    settings_text(user),
+                    "Уведомления будут приходить беззвучно в выбранные часы.\n\n"
+                    + settings_text(user),
                     reply_markup=settings_keyboard(user),
                 )
             except Exception as exc:
@@ -79,6 +77,14 @@ async def main() -> None:
     async def on_startup() -> None:
         scheduler.start()
         logger.info("Scheduler started")
+        await bot.set_my_commands([
+            BotCommand(command="start",    description="Настроить город"),
+            BotCommand(command="status",   description="Текущий AQI"),
+            BotCommand(command="settings", description="Настройки и мониторинг"),
+            BotCommand(command="stop",     description="Приостановить алерты"),
+            BotCommand(command="resume",   description="Возобновить алерты"),
+        ])
+        logger.info("Bot commands set")
         await broadcast_v1()
         await broadcast_v2()
 
